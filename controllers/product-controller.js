@@ -20,10 +20,14 @@ const getAllProducts = async (req, res) => {
 const postProduct = async (req, res) => {
     try {
         const { title, description, price } = req.body;
-        const file = req.file;
+        const files = req.files;
 
-        if (!title || !description || !price || !file) {
+        if (!title || !description || !price) {
             return res.status(400).json({ error: 'Faltan datos' });
+        }
+
+        if (!files || files.length === 0) {
+            return res.status(400).json({ error: 'No se subieron imágenes' });
         }
 
         // Convertimos buffer a stream para subirlo a Cloudinary
@@ -40,13 +44,18 @@ const postProduct = async (req, res) => {
             });
         };
 
-        const result = await streamUpload(file.buffer);
+        const uploadPromises = files.map((file) =>
+            streamUpload(file.buffer)
+        );
 
+        const results = await Promise.all(uploadPromises);
+        const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const newProduct = new Product({
             title,
             description,
             price,
-            image: result.secure_url
+            slug,
+            images: results
         });
 
         const savedProduct = await newProduct.save();
@@ -76,6 +85,34 @@ const getProductById = async (req, res) => {
     }
 }
 
+const editProduct = async (req, res) => {
+    const { id } = req.params
+    const { title, description, price,category } = req.body
+    try {
+        const product = await Product.findById(id)
+        if (!product) {
+            return res.status(404).json({ message: 'Producto no encontrado' });
+        }
+        const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        const updatedProduct = await Product.findByIdAndUpdate(id, {
+            title,
+            description,
+            category,
+            slug,
+            price
+        }, { new: true });
+        res.status(200).json({
+            message: 'Producto actualizado con exito',
+            product: updatedProduct
+        })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            message: 'Error al actualizar el producto'
+        })
+    }
+}
+
 const deleteProduct = async (req, res) => {
     const { id } = req.params;
 
@@ -101,5 +138,6 @@ module.exports = {
     getAllProducts,
     postProduct,
     deleteProduct,
-    getProductById
+    getProductById,
+    editProduct
 }

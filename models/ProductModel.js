@@ -6,7 +6,7 @@ const ProductSchema = new Schema({
     title: {
         type: String,
         required: true,
-        
+
     },
     description: {
         type: String,
@@ -16,11 +16,26 @@ const ProductSchema = new Schema({
         type: Number,
         required: true
     },
-    image: {
+    category: {
         type: String,
         required: true
-    }
-    
+    },
+    slug: {
+        type: String,
+    },
+    images: [
+        {
+            public_id: {
+                type: String,
+                required: true
+            },
+            secure_url: {
+                type: String,
+                required: true
+            }
+        }
+    ]
+
 })
 
 const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
